@@ -1,0 +1,72 @@
+generator client {
+    provider = "prisma-client-js"
+}
+
+
+datasource db {
+    provider = "postgresql"
+    url = env("DATABASE_URL")
+}
+
+
+model User {
+    id String @id @default(cuid())
+    email String @unique
+    passwordHash String?
+    name String?
+    image String?
+    createdAt DateTime @default(now())
+    watchlists Watchlist[]
+    viewEvents ViewEvent[]
+}
+
+
+model Video {
+    id String @id @default(cuid())
+    title String
+    description String
+    durationSec Int
+    genres String[]
+    maturity String
+    status String // processing | ready | failed
+    hlsPath String? // s3 path to master.m3u8
+    posterUrl String?
+    createdAt DateTime @default(now())
+    viewEvents ViewEvent[]
+    watchlists Watchlist[]
+}
+
+
+model Watchlist {
+    id String @id @default(cuid())
+    userId String
+    videoId String
+    createdAt DateTime @default(now())
+    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+    video Video @relation(fields: [videoId], references: [id], onDelete: Cascade)
+    @@unique([userId, videoId])
+}
+
+
+model ViewEvent {
+    id String @id @default(cuid())
+    userId String?
+    videoId String
+    kind String // start | progress | complete
+    positionS Int
+    createdAt DateTime @default(now())
+    user User? @relation(fields: [userId], references: [id])
+    video Video @relation(fields: [videoId], references: [id])
+}
+
+
+model UploadJob {
+    id String @id @default(cuid())
+    uploaderId String
+    sourceKey String // object key in S3/MinIO for raw upload
+    status String // queued | running | done | failed
+    log String?
+    videoId String?
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+}
